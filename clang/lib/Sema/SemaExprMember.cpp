@@ -1743,6 +1743,62 @@ ExprResult Sema::ActOnMemberAccessExpr(Scope *S, Expr *Base,
   return Res;
 }
 
+ExprResult Sema::ActOnNullPropagatingMemberAccessExpr(
+    Scope *S, Expr *Base, SourceLocation OpLoc, CXXScopeSpec &SS,
+    SourceLocation TemplateKWLoc, UnqualifiedId &Id, Decl *ObjCImpDecl) {
+    
+  OpaqueValueExpr *BaseOpaque = new (Context) OpaqueValueExpr(
+      Base->getExprLoc(), Base->getType(), Base->getValueKind(), Base->getObjectKind(), Base);
+
+  ExprResult MemberRes = ActOnMemberAccessExpr(S, BaseOpaque, OpLoc, tok::arrow, SS,
+                                               TemplateKWLoc, Id, ObjCImpDecl);
+
+  if (MemberRes.isInvalid())
+    return ExprError();
+
+  return BuildNullPropagatingMemberAccessConditional(Base, OpLoc,
+                                                     MemberRes.get());
+}
+
+ExprResult Sema::ActOnNullPropagatingMemberAccessExpr(Expr *Base,
+                                                      SourceLocation OpLoc,
+                                                      Expr *TrueExpr) {
+  return BuildNullPropagatingMemberAccessConditional(Base, OpLoc, TrueExpr);
+}
+
+ExprResult Sema::BuildNullPropagatingMemberAccessConditional(
+    Expr *Base, SourceLocation OpLoc, Expr *TrueExpr) {
+  if (!Base || !TrueExpr)
+    return ExprError();
+
+  OpaqueValueExpr *BaseOpaque = new (Context)
+      OpaqueValueExpr(Base->getExprLoc(), Base->getType(), Base->getValueKind(),
+                      Base->getObjectKind(), Base);
+
+  // ExprResult Cond = CheckBooleanCondition(OpLoc, BaseOpaque);
+  Expr *NullPtr = new (Context) CXXNullPtrLiteralExpr(Context.NullPtrTy, OpLoc);
+  ExprResult Cond = CreateBuiltinBinOp(OpLoc, BO_NE, BaseOpaque, NullPtr);
+  if (Cond.isInvalid())
+    return ExprError();
+
+  QualType ResType = TrueExpr->getType();
+  ExprResult FalseRes;
+
+  if (ResType->isVoidType()) {
+    Expr *Zero = IntegerLiteral::Create(Context, llvm::APInt(32, 0),
+                                        Context.IntTy, OpLoc);
+    FalseRes = ImpCastExprToType(Zero, Context.VoidTy, CK_ToVoid);
+  } else if (ResType->isPointerType() || ResType->isNullPtrType()) {
+    FalseRes = new (Context) CXXNullPtrLiteralExpr(Context.NullPtrTy, OpLoc);
+  } else {
+    Diag(TrueExpr->getExprLoc(), diag::err_null_propagating_non_pointer_result)
+        << ResType;
+    return ExprError();
+  }
+
+  return ActOnConditionalOp(OpLoc, OpLoc, Cond.get(), TrueExpr, FalseRes.get());
+}
+
 void Sema::CheckMemberAccessOfNoDeref(const MemberExpr *E) {
   if (isUnevaluatedContext())
     return;

@@ -13940,4 +13940,7 @@ def err_cuda_device_kernel_launch_not_supported
 def err_cuda_device_kernel_launch_require_rdc
     : Error<"kernel launch from __device__ or __global__ function requires "
             "relocatable device code (i.e. requires -fgpu-rdc)">;
+			
+def err_null_propagating_non_pointer_result : Error<
+  "null-propagating operator '?->' requires the result to have pointer or void type, but has type %0">;
 } // end of sema component.

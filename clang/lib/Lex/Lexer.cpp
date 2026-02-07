@@ -4074,9 +4074,20 @@ LexStart:
                                             : tok::string_literal);
 
   // C99 6.4.6: Punctuators.
-  case '?':
+  case '?': {
+    unsigned Size1 = 0;
+    if (getCharAndSize(CurPtr, Size1) == '-') {
+      unsigned Size2 = 0;
+      if (getCharAndSize(CurPtr + Size1, Size2) == '>') {
+        CurPtr = ConsumeChar(CurPtr, Size1, Result);
+        CurPtr = ConsumeChar(CurPtr, Size2, Result);
+        Kind = tok::questionarrow;
+        break;
+      }
+    }
     Kind = tok::question;
     break;
+  }
   case '[':
     Kind = tok::l_square;
     break;

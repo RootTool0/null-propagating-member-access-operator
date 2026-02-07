@@ -8951,6 +8951,21 @@ public:
                                    SourceLocation TemplateKWLoc,
                                    UnqualifiedId &Member, Decl *ObjCImpDecl);
 
+  ExprResult ActOnNullPropagatingMemberAccessExpr(
+      Scope *S, Expr *Base, SourceLocation OpLoc, CXXScopeSpec &SS,
+      SourceLocation TemplateKWLoc, UnqualifiedId &Id, Decl *ObjCImpDecl);
+
+  ExprResult ActOnNullPropagatingMemberAccessExpr(Expr *Base,
+                                                  SourceLocation OpLoc,
+                                                  Expr *TrueExpr);
+
+private:
+  ExprResult BuildNullPropagatingMemberAccessConditional(Expr *Base,
+                                                         SourceLocation OpLoc,
+                                                         Expr *TrueExpr);
+
+public:
+
   MemberExpr *
   BuildMemberExpr(Expr *Base, bool IsArrow, SourceLocation OpLoc,
                   NestedNameSpecifierLoc NNS, SourceLocation TemplateKWLoc,
