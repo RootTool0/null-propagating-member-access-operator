@@ -2073,69 +2073,69 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
       }
       ConsumeToken();
       break;
-    }
 	
     case tok::questionarrow: {
-      SourceLocation OpLoc = ConsumeToken();
-
-      if (LHS.isInvalid())
-        return ExprError();
-
-      Expr *BaseExpr = LHS.get();
-
-      CXXScopeSpec SS;
-      SourceLocation TemplateKWLoc;
-      UnqualifiedId Name;
-      if (ParseUnqualifiedId(
-              SS, /*ObjectType=*/nullptr, /*ObjectHadErrors=*/false,
-              /*EnteringContext=*/false, /*AllowDestructorName=*/true,
-              /*AllowConstructorName=*/false, /*AllowDeductionGuide=*/false,
-              &TemplateKWLoc, Name)) {
-        return ExprError();
-      }
-
-      if (Tok.is(tok::l_paren)) {
-
-        BalancedDelimiterTracker PT(*this, tok::l_paren);
-        PT.consumeOpen();
-        SourceLocation LParenLoc = PT.getOpenLocation();
-
-        ExprVector ArgExprs;
-        if (Tok.isNot(tok::r_paren)) {
-          if (ParseExpressionList(ArgExprs)) {
-            LHS = ExprError();
+        SourceLocation OpLoc = ConsumeToken();
+	  
+        if (LHS.isInvalid())
+          return ExprError();
+	  
+        Expr *BaseExpr = LHS.get();
+	  
+        CXXScopeSpec SS;
+        SourceLocation TemplateKWLoc;
+        UnqualifiedId Name;
+        if (ParseUnqualifiedId(
+                SS, /*ObjectType=*/nullptr, /*ObjectHadErrors=*/false,
+                /*EnteringContext=*/false, /*AllowDestructorName=*/true,
+                /*AllowConstructorName=*/false, /*AllowDeductionGuide=*/false,
+                &TemplateKWLoc, Name)) {
+          return ExprError();
+        }
+	  
+        if (Tok.is(tok::l_paren)) {
+	  
+          BalancedDelimiterTracker PT(*this, tok::l_paren);
+          PT.consumeOpen();
+          SourceLocation LParenLoc = PT.getOpenLocation();
+	  
+          ExprVector ArgExprs;
+          if (Tok.isNot(tok::r_paren)) {
+            if (ParseExpressionList(ArgExprs)) {
+              LHS = ExprError();
+            }
           }
+	  
+          if (Tok.isNot(tok::r_paren)) {
+            SkipUntil(tok::r_paren, StopAtSemi);
+            return ExprError();
+          }
+	  
+          SourceLocation RParenLoc = Tok.getLocation();
+          PT.consumeClose();
+	  
+          ExprResult Member = Actions.ActOnMemberAccessExpr(
+              getCurScope(), BaseExpr, OpLoc, tok::arrow, SS, TemplateKWLoc,
+              Name, CurParsedObjCImpl ? CurParsedObjCImpl->Dcl : nullptr);
+	  
+          if (Member.isInvalid())
+            return ExprError();
+	  
+          ExprResult Call =
+              Actions.ActOnCallExpr(getCurScope(), Member.get(), LParenLoc,
+                                    ArgExprs, RParenLoc, nullptr);
+          if (Call.isInvalid())
+            return ExprError();
+	  
+          LHS = Actions.ActOnNullPropagatingMemberAccessExpr(BaseExpr, OpLoc,
+                                                             Call.get());
+        } else {
+          LHS = Actions.ActOnNullPropagatingMemberAccessExpr(
+              getCurScope(), BaseExpr, OpLoc, SS, TemplateKWLoc, Name,
+              CurParsedObjCImpl ? CurParsedObjCImpl->Dcl : nullptr);
         }
-
-        if (Tok.isNot(tok::r_paren)) {
-          SkipUntil(tok::r_paren, StopAtSemi);
-          return ExprError();
-        }
-
-        SourceLocation RParenLoc = Tok.getLocation();
-        PT.consumeClose();
-
-        ExprResult Member = Actions.ActOnMemberAccessExpr(
-            getCurScope(), BaseExpr, OpLoc, tok::arrow, SS, TemplateKWLoc,
-            Name, CurParsedObjCImpl ? CurParsedObjCImpl->Dcl : nullptr);
-
-        if (Member.isInvalid())
-          return ExprError();
-
-        ExprResult Call =
-            Actions.ActOnCallExpr(getCurScope(), Member.get(), LParenLoc,
-                                  ArgExprs, RParenLoc, nullptr);
-        if (Call.isInvalid())
-          return ExprError();
-
-        LHS = Actions.ActOnNullPropagatingMemberAccessExpr(BaseExpr, OpLoc,
-                                                           Call.get());
-      } else {
-        LHS = Actions.ActOnNullPropagatingMemberAccessExpr(
-            getCurScope(), BaseExpr, OpLoc, SS, TemplateKWLoc, Name,
-            CurParsedObjCImpl ? CurParsedObjCImpl->Dcl : nullptr);
+        break;
       }
-      break;
     }
   }
 }
