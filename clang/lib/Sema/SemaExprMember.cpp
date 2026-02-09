@@ -1798,7 +1798,7 @@ ExprResult Sema::BuildNullPropagatingMemberAccessConditional(OpaqueValueExpr *Ba
   } else if (ResType->isPointerType() || ResType->isNullPtrType()) {
     FalseRes = new (Context) CXXNullPtrLiteralExpr(Context.NullPtrTy, OpLoc);
   } else {
-    Diag(TrueExpr->getExprLoc(), diag::err_null_propagating_non_pointer_result) << ResType;
+    Diag(TrueExpr->getExprLoc(), diag::err_null_propagating_member_access_operator_non_void_or_pointer_result) << ResType;
     return ExprError();
   }
 
