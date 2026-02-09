@@ -1744,55 +1744,61 @@ ExprResult Sema::ActOnMemberAccessExpr(Scope *S, Expr *Base,
 }
 
 ExprResult Sema::ActOnNullPropagatingMemberAccessExpr(
-    Scope *S, Expr *Base, SourceLocation OpLoc, CXXScopeSpec &SS,
+    Scope *S, OpaqueValueExpr *BaseOpaque, SourceLocation OpLoc, CXXScopeSpec &SS,
     SourceLocation TemplateKWLoc, UnqualifiedId &Id, Decl *ObjCImpDecl) {
-    
-  OpaqueValueExpr *BaseOpaque = new (Context) OpaqueValueExpr(
-      Base->getExprLoc(), Base->getType(), Base->getValueKind(), Base->getObjectKind(), Base);
-
   ExprResult MemberRes = ActOnMemberAccessExpr(S, BaseOpaque, OpLoc, tok::arrow, SS,
                                                TemplateKWLoc, Id, ObjCImpDecl);
 
   if (MemberRes.isInvalid())
     return ExprError();
-
-  return BuildNullPropagatingMemberAccessConditional(Base, OpLoc,
-                                                     MemberRes.get());
+  
+  return BuildNullPropagatingMemberAccessConditional(BaseOpaque, OpLoc, MemberRes.get());
 }
 
-ExprResult Sema::ActOnNullPropagatingMemberAccessExpr(Expr *Base,
+ExprResult Sema::ActOnNullPropagatingMemberAccessExpr(OpaqueValueExpr *BaseOpaque,
                                                       SourceLocation OpLoc,
                                                       Expr *TrueExpr) {
-  return BuildNullPropagatingMemberAccessConditional(Base, OpLoc, TrueExpr);
+  return BuildNullPropagatingMemberAccessConditional(BaseOpaque, OpLoc, TrueExpr);
 }
 
-ExprResult Sema::BuildNullPropagatingMemberAccessConditional(
-    Expr *Base, SourceLocation OpLoc, Expr *TrueExpr) {
-  if (!Base || !TrueExpr)
+ExprResult Sema::BuildNullPropagatingMemberAccessConditional(OpaqueValueExpr *BaseOpaque, 
+                                                             SourceLocation OpLoc, 
+                                                             Expr *TrueExpr) {
+  if (!BaseOpaque || !TrueExpr)
     return ExprError();
+  
+  ExprResult Cond;
+  {
+    Expr *NullPtr = new (Context) CXXNullPtrLiteralExpr(Context.NullPtrTy, OpLoc);
+    QualType BaseType = BaseOpaque->getType();
 
-  OpaqueValueExpr *BaseOpaque = new (Context)
-      OpaqueValueExpr(Base->getExprLoc(), Base->getType(), Base->getValueKind(),
-                      Base->getObjectKind(), Base);
-
-  // ExprResult Cond = CheckBooleanCondition(OpLoc, BaseOpaque);
-  Expr *NullPtr = new (Context) CXXNullPtrLiteralExpr(Context.NullPtrTy, OpLoc);
-  ExprResult Cond = CreateBuiltinBinOp(OpLoc, BO_NE, BaseOpaque, NullPtr);
+    // Simple pointers
+    if (BaseType->isPointerType() || BaseType->isNullPtrType()) {
+      Cond = CreateBuiltinBinOp(OpLoc, BO_NE, BaseOpaque, NullPtr);
+    }
+    // For classes (shared_ptr, unique_ptr, optional...): operator bool
+    else {
+      Cond = CreateBuiltinBinOp(OpLoc, BO_NE, BaseOpaque, NullPtr);
+      
+      if (Cond.isInvalid()) {
+        Cond = CheckBooleanCondition(OpLoc, BaseOpaque);
+      }
+    }
+  }
+  
   if (Cond.isInvalid())
     return ExprError();
 
   QualType ResType = TrueExpr->getType();
   ExprResult FalseRes;
-
+  
   if (ResType->isVoidType()) {
-    Expr *Zero = IntegerLiteral::Create(Context, llvm::APInt(32, 0),
-                                        Context.IntTy, OpLoc);
+    Expr *Zero = IntegerLiteral::Create(Context, llvm::APInt(32, 0), Context.IntTy, OpLoc);
     FalseRes = ImpCastExprToType(Zero, Context.VoidTy, CK_ToVoid);
   } else if (ResType->isPointerType() || ResType->isNullPtrType()) {
     FalseRes = new (Context) CXXNullPtrLiteralExpr(Context.NullPtrTy, OpLoc);
   } else {
-    Diag(TrueExpr->getExprLoc(), diag::err_null_propagating_non_pointer_result)
-        << ResType;
+    Diag(TrueExpr->getExprLoc(), diag::err_null_propagating_non_pointer_result) << ResType;
     return ExprError();
   }
 

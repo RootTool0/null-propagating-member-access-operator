@@ -8952,15 +8952,15 @@ public:
                                    UnqualifiedId &Member, Decl *ObjCImpDecl);
 
   ExprResult ActOnNullPropagatingMemberAccessExpr(
-      Scope *S, Expr *Base, SourceLocation OpLoc, CXXScopeSpec &SS,
+      Scope *S, OpaqueValueExpr *BaseOpaque, SourceLocation OpLoc, CXXScopeSpec &SS,
       SourceLocation TemplateKWLoc, UnqualifiedId &Id, Decl *ObjCImpDecl);
-
-  ExprResult ActOnNullPropagatingMemberAccessExpr(Expr *Base,
+    
+  ExprResult ActOnNullPropagatingMemberAccessExpr(OpaqueValueExpr *BaseOpaque,
                                                   SourceLocation OpLoc,
                                                   Expr *TrueExpr);
 
 private:
-  ExprResult BuildNullPropagatingMemberAccessConditional(Expr *Base,
+  ExprResult BuildNullPropagatingMemberAccessConditional(OpaqueValueExpr *BaseOpaque,
                                                          SourceLocation OpLoc,
                                                          Expr *TrueExpr);
 
