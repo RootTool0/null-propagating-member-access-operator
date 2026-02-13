@@ -143,12 +143,18 @@ int main()
 
 Expected: Nested `ConditionalOperator` with `OpaqueValueExpr` for CSE, explicit `!=` comparisons.
 
+## Capabilities
+
+- **C/C++ Support** - Work in both of languages
+- **Template Instantiation** - Support for class and function templates
+- **Constexpr** - Basic compile-time expression evaluation
+- **Chaining** - Support for sequential calls and member access
+
 ## Limitations
 
 - **Frontend only** - no LLVM IR optimizations
-- **No constexpr support** (not tested)
-- **Template interactions** - basic cases work, edge cases unknown
-- **Error recovery** - minimal
+- **Arrow operator (->)** - overloading is currently Work-In-Progress
+- **Error recovery** — minimal
 
 ## Motivation
 
