@@ -153,8 +153,8 @@ Expected: Nested `ConditionalOperator` with `OpaqueValueExpr` for CSE, explicit 
 ## Limitations
 
 - **Frontend only** - no LLVM IR optimizations
-- **Arrow operator (->)** - overloading is currently Work-In-Progress
-- **Error recovery** — minimal
+- **Arrow operator (->)** - overloading is currently **Work-In-Progress**
+- **Error recovery** - minimal
 
 ## Motivation
 
@@ -169,6 +169,7 @@ Proof-of-concept for SG14 discussion. Not production-ready.
 
 ## Links
 
+- Proposal Discussion: https://lists.isocpp.org/sg14/2026/02/1277.php
 - SG14 mailing list: sg14@lists.isocpp.org
 - Author: RootTool, 17yo hobbyist, UE/embedded/C++ enthusiast
 
