@@ -118,6 +118,10 @@ cmake --build . --target clang -j 12
 
 ## Testing
 
+You can find the current **Clang build** and **functional test cases** in the `/ForSG14` directory.
+
+## Usage Example
+
 ```cpp
 struct AActor { void Destroy() {} };
 
@@ -137,11 +141,15 @@ int main()
 }
 ```
 
+### Verification
+
+Run the following command to see the transformation: 
+
 ```cmd
 .\bin\clang.exe -Xclang -ast-dump -fsyntax-only test.cpp
 ```
 
-Expected: Nested `ConditionalOperator` with `OpaqueValueExpr` for CSE, explicit `!=` comparisons.
+**Expected output:** Nested `ConditionalOperator` with `OpaqueValueExpr` for Common Subexpression Elimination CSE and explicit `!= nullptr` comparisons.
 
 ## Capabilities
 
